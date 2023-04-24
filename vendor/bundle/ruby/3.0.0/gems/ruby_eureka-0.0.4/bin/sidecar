@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require 'eureka'
+require 'yaml'
+require 'erb'
+
+opt = {}
+opt = YAML.load(ERB.new(IO.read('config/eureka_sidecar.yml')).result) || opts
+
+Eureka.setup do |config|
+  config.side_app_name = opt['eureka']['service_name']
+  config.eureka_url    = opt['eureka']['url']
+  config.app_port      = opt['service']['port']        if opt['service'] && opt['service']['port']
+  config.sidecar_port  = opt['sidecar']['port']        if opt['sidecar'] && opt['sidecar']['port']
+  config.instance_id   = opt['sidecar']['instance_id'] if opt['sidecar'] && opt['sidecar']['instance_id']
+end
+
+begin
+  exe = Eureka::Execute
+  exe.run
+rescue => e
+  raise e if $DEBUG
+  STDERR.puts e.message
+  STDERR.puts e.backtrace.join("\n")
+  exit 1
+end
